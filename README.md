@@ -20,6 +20,13 @@ Construir un MVP con foco en:
 - **Detalle de raza** con información completa:
   - Breed, Country, Origin, Coat, Pattern.
 - **Dato curioso aleatorio** (`/fact`) en la vista de detalle con estado de carga independiente.
+- **Tema claro/oscuro global** con switch en la pantalla principal.
+  - Cambio aplicado a toda la app (estado global).
+  - Compatible con tema del sistema.
+- **Animación Hero** al navegar entre tarjeta de raza (lista) y encabezado del detalle.
+- **Caché local de primera página** para apertura instantánea aun sin red:
+  - Persistencia con `shared_preferences`.
+  - Fallback a caché en errores de red de la primera carga.
 - Manejo de errores con `SnackBar` y acciones de reintento.
 
 ## Stack técnico
@@ -28,9 +35,8 @@ Construir un MVP con foco en:
 - `get_it` para inyección de dependencias.
 - `dio` para consumo HTTP.
 - `go_router` para enrutamiento.
-- `bloc_concurrency` + `stream_transform` para control de eventos en `Bloc`:
-  - `droppable` en paginación para evitar peticiones concurrentes.
-  - `debounce` en búsqueda para evitar saturación de eventos.
+- `freezed` + `json_serializable` para modelos inmutables y tipados.
+- `shared_preferences` para persistencia de caché local.
 
 ## Arquitectura
 
@@ -50,8 +56,7 @@ lib/
       data/
       domain/
       presentation/
-        bloc/
-        cubit/ (state)
+        cubit/
         pages/
     breed_detail/
       data/
@@ -62,8 +67,10 @@ lib/
 
 ### Decisiones importantes
 
-- `BreedsBloc` se usa en el listado porque maneja múltiples eventos asíncronos (inicio, scroll, refresh, búsqueda).
+- `BreedsCubit` se usa en el listado para reducir boilerplate y mantener el flujo simple (inicio, scroll, refresh, búsqueda con debounce).
 - `BreedDetailCubit` se mantiene para detalle porque el flujo es más simple y con menos boilerplate.
+- `ThemeModeCubit` maneja el modo visual global (light/dark/system-friendly).
+- `BreedsCacheService` persiste y recupera la primera página para mejorar tiempo de arranque percibido.
 - La UI no contiene lógica de negocio ni llamadas HTTP directas.
 - Repositorios encapsulan errores de red y retornan entidades tipadas.
 
@@ -83,7 +90,7 @@ flutter run
 
 ## Pruebas
 
-Se incluyen pruebas de widget y pruebas unitarias del `BreedsBloc`.
+Se incluyen pruebas de widget y pruebas unitarias del `BreedsCubit`.
 
 ### Ejecutar pruebas
 
@@ -91,11 +98,11 @@ Se incluyen pruebas de widget y pruebas unitarias del `BreedsBloc`.
 flutter test
 ```
 
-### Casos unitarios cubiertos (BreedsBloc)
+### Casos unitarios cubiertos (BreedsCubit)
 
 - Emisión de estados en carga inicial (`loading -> success`).
-- Debounce de búsqueda (`BreedsSearchChanged`).
-- Control de concurrencia en paginación con `droppable` (ignora `loadMore` duplicados en paralelo).
+- Debounce de búsqueda.
+- Control para ignorar `loadMore` duplicados en paralelo.
 
 ## Manejo de errores y UX
 

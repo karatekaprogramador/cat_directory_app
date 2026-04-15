@@ -13,14 +13,31 @@ class BreedsCubit extends Cubit<BreedsState> {
   Timer? _debounce;
 
   Future<void> loadInitial() async {
-    emit(
-      state.copyWith(
-        status: BreedsStatus.loading,
-        clearError: true,
-        currentPage: 0,
-        hasMore: true,
-      ),
-    );
+    final cachedPage = _repository.getCachedFirstPage();
+    if (cachedPage != null) {
+      final filtered = _applyQuery(cachedPage.items, state.query);
+      emit(
+        state.copyWith(
+          status: BreedsStatus.success,
+          breeds: cachedPage.items,
+          visibleBreeds: filtered,
+          currentPage: cachedPage.currentPage,
+          hasMore: cachedPage.hasMore,
+          clearError: true,
+        ),
+      );
+    }
+
+    if (cachedPage == null) {
+      emit(
+        state.copyWith(
+          status: BreedsStatus.loading,
+          clearError: true,
+          currentPage: 0,
+          hasMore: true,
+        ),
+      );
+    }
 
     try {
       final page = await _repository.getBreedsPage(page: 1);
@@ -51,7 +68,9 @@ class BreedsCubit extends Cubit<BreedsState> {
   }
 
   Future<void> loadMore() async {
-    if (state.isLoadingMore || !state.hasMore || state.status == BreedsStatus.loading) {
+    if (state.isLoadingMore ||
+        !state.hasMore ||
+        state.status == BreedsStatus.loading) {
       return;
     }
 

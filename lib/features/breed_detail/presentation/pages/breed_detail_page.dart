@@ -13,6 +13,8 @@ class BreedDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final heroTag = 'breed-card-${breed.breed}-${breed.country}';
+
     return BlocProvider(
       create: (_) => getIt<BreedDetailCubit>()..loadFact(),
       child: Scaffold(
@@ -22,6 +24,30 @@ class BreedDetailPage extends StatelessWidget {
             return ListView(
               padding: const EdgeInsets.all(16),
               children: [
+                Hero(
+                  tag: heroTag,
+                  child: Card(
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      title: Text(
+                        breed.breed,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      subtitle: Text(
+                        breed.country,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
                 _DetailCard(
                   title: 'Información de la raza',
                   children: [
@@ -51,7 +77,8 @@ class BreedDetailPage extends StatelessWidget {
                           ),
                           const SizedBox(height: 12),
                           FilledButton.tonal(
-                            onPressed: () => context.read<BreedDetailCubit>().loadFact(),
+                            onPressed: () =>
+                                context.read<BreedDetailCubit>().loadFact(),
                             child: const Text('Reintentar'),
                           ),
                         ],
@@ -80,6 +107,8 @@ class _DetailCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -88,10 +117,8 @@ class _DetailCard extends StatelessWidget {
           children: [
             Text(
               title,
-              style: const TextStyle(
-                fontSize: 18,
+              style: textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF1B2430),
               ),
             ),
             const SizedBox(height: 12),
@@ -111,6 +138,9 @@ class _DetailRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
@@ -119,8 +149,8 @@ class _DetailRow extends StatelessWidget {
             width: 90,
             child: Text(
               label,
-              style: const TextStyle(
-                color: Color(0xFF6B7280),
+              style: textTheme.bodyMedium?.copyWith(
+                color: colorScheme.onSurfaceVariant,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -128,10 +158,7 @@ class _DetailRow extends StatelessWidget {
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(
-                color: Color(0xFF1B2430),
-                fontWeight: FontWeight.w500,
-              ),
+              style: textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
             ),
           ),
         ],

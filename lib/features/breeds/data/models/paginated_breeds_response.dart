@@ -11,7 +11,7 @@ class PaginatedBreedsResponse extends PaginatedBreeds {
   factory PaginatedBreedsResponse.fromJson(Map<String, dynamic> json) {
     final data = (json['data'] as List<dynamic>? ?? <dynamic>[])
         .whereType<Map<String, dynamic>>()
-        .map(BreedModel.fromJson)
+        .map((item) => BreedModel.fromJson(item))
         .toList(growable: false);
 
     return PaginatedBreedsResponse(

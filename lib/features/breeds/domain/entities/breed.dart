@@ -1,20 +1,17 @@
-import 'package:equatable/equatable.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-class Breed extends Equatable {
-  const Breed({
-    required this.breed,
-    required this.country,
-    required this.origin,
-    required this.coat,
-    required this.pattern,
-  });
+part 'breed.freezed.dart';
+part 'breed.g.dart';
 
-  final String breed;
-  final String country;
-  final String origin;
-  final String coat;
-  final String pattern;
+@freezed
+class Breed with _$Breed {
+  const factory Breed({
+    required String breed,
+    required String country,
+    required String origin,
+    required String coat,
+    required String pattern,
+  }) = _Breed;
 
-  @override
-  List<Object?> get props => [breed, country, origin, coat, pattern];
+  factory Breed.fromJson(Map<String, dynamic> json) => _$BreedFromJson(json);
 }

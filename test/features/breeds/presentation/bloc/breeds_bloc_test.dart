@@ -1,11 +1,9 @@
 import 'dart:async';
 
-import 'package:bloc_test/bloc_test.dart';
 import 'package:cat_directory_app/features/breeds/data/repositories/breed_repository.dart';
 import 'package:cat_directory_app/features/breeds/domain/entities/breed.dart';
 import 'package:cat_directory_app/features/breeds/domain/entities/paginated_breeds.dart';
-import 'package:cat_directory_app/features/breeds/presentation/bloc/breeds_bloc.dart';
-import 'package:cat_directory_app/features/breeds/presentation/bloc/breeds_event.dart';
+import 'package:cat_directory_app/features/breeds/presentation/cubit/breeds_cubit.dart';
 import 'package:cat_directory_app/features/breeds/presentation/cubit/breeds_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -35,118 +33,86 @@ void main() {
     repository = _MockBreedRepository();
   });
 
-  group('BreedsBloc', () {
-    blocTest<BreedsBloc, BreedsState>(
-      'emite loading y luego success al iniciar',
-      build: () {
-        when(
-          () => repository.getBreedsPage(page: 1),
-        ).thenAnswer(
-          (_) async => const PaginatedBreeds(
-            items: [bengal, persian],
-            currentPage: 1,
-            lastPage: 2,
-          ),
-        );
-        return BreedsBloc(repository);
-      },
-      act: (bloc) => bloc.add(const BreedsStarted()),
-      expect: () => <BreedsState>[
-        const BreedsState(status: BreedsStatus.loading),
-        const BreedsState(
-          status: BreedsStatus.success,
-          breeds: [bengal, persian],
-          visibleBreeds: [bengal, persian],
+  group('BreedsCubit', () {
+    test('emite loading y luego success al iniciar', () async {
+      when(() => repository.getBreedsPage(page: 1)).thenAnswer(
+        (_) async => const PaginatedBreeds(
+          items: [bengal, persian],
           currentPage: 1,
-          hasMore: true,
+          lastPage: 2,
         ),
-      ],
-      verify: (_) {
-        verify(() => repository.getBreedsPage(page: 1)).called(1);
-      },
-    );
+      );
 
-    blocTest<BreedsBloc, BreedsState>(
-      'aplica debounce y solo conserva la ultima busqueda',
-      build: () {
-        when(
-          () => repository.getBreedsPage(page: 1),
-        ).thenAnswer(
-          (_) async => const PaginatedBreeds(
-            items: [bengal, persian],
-            currentPage: 1,
-            lastPage: 1,
-          ),
-        );
-        return BreedsBloc(repository);
-      },
-      act: (bloc) async {
-        bloc.add(const BreedsStarted());
-        await Future<void>.delayed(const Duration(milliseconds: 20));
-        bloc.add(const BreedsSearchChanged('be'));
-        bloc.add(const BreedsSearchChanged('pers'));
-      },
-      wait: const Duration(milliseconds: 450),
-      expect: () => <BreedsState>[
-        const BreedsState(status: BreedsStatus.loading),
-        const BreedsState(
-          status: BreedsStatus.success,
-          breeds: [bengal, persian],
-          visibleBreeds: [bengal, persian],
+      final cubit = BreedsCubit(repository);
+      final emitted = <BreedsState>[];
+      final sub = cubit.stream.listen(emitted.add);
+
+      await cubit.loadInitial();
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+
+      expect(emitted.first.status, BreedsStatus.loading);
+      expect(emitted.last.status, BreedsStatus.success);
+      expect(emitted.last.breeds, const [bengal, persian]);
+      expect(emitted.last.visibleBreeds, const [bengal, persian]);
+
+      verify(() => repository.getBreedsPage(page: 1)).called(1);
+      await sub.cancel();
+      await cubit.close();
+    });
+
+    test('aplica debounce y solo conserva la ultima busqueda', () async {
+      when(() => repository.getBreedsPage(page: 1)).thenAnswer(
+        (_) async => const PaginatedBreeds(
+          items: [bengal, persian],
           currentPage: 1,
-          hasMore: false,
+          lastPage: 1,
         ),
-        const BreedsState(
-          status: BreedsStatus.success,
-          breeds: [bengal, persian],
-          visibleBreeds: [persian],
-          query: 'pers',
-          currentPage: 1,
-          hasMore: false,
-        ),
-      ],
-    );
+      );
 
-    blocTest<BreedsBloc, BreedsState>(
-      'usa droppable para ignorar peticiones de loadMore en paralelo',
-      build: () {
-        when(
-          () => repository.getBreedsPage(page: 1),
-        ).thenAnswer(
-          (_) async => const PaginatedBreeds(
-            items: [bengal],
-            currentPage: 1,
-            lastPage: 3,
-          ),
+      final cubit = BreedsCubit(repository);
+      final emitted = <BreedsState>[];
+      final sub = cubit.stream.listen(emitted.add);
+
+      await cubit.loadInitial();
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      cubit.onSearchChanged('be');
+      cubit.onSearchChanged('pers');
+      await Future<void>.delayed(const Duration(milliseconds: 450));
+
+      expect(emitted.length, 3);
+      expect(emitted.last.query, 'pers');
+      expect(emitted.last.visibleBreeds, const [persian]);
+
+      await sub.cancel();
+      await cubit.close();
+    });
+
+    test('ignora loadMore duplicado mientras sigue cargando', () async {
+      when(() => repository.getBreedsPage(page: 1)).thenAnswer(
+        (_) async =>
+            const PaginatedBreeds(items: [bengal], currentPage: 1, lastPage: 3),
+      );
+
+      final page2Completer = Completer<PaginatedBreeds>();
+      when(
+        () => repository.getBreedsPage(page: 2),
+      ).thenAnswer((_) => page2Completer.future);
+
+      Future<void>.delayed(const Duration(milliseconds: 120), () {
+        page2Completer.complete(
+          const PaginatedBreeds(items: [persian], currentPage: 2, lastPage: 3),
         );
+      });
 
-        final page2Completer = Completer<PaginatedBreeds>();
-        when(() => repository.getBreedsPage(page: 2)).thenAnswer(
-          (_) => page2Completer.future,
-        );
+      final cubit = BreedsCubit(repository);
+      await cubit.loadInitial();
+      await Future<void>.delayed(const Duration(milliseconds: 30));
+      unawaited(cubit.loadMore());
+      unawaited(cubit.loadMore());
+      await Future<void>.delayed(const Duration(milliseconds: 300));
 
-        Future<void>.delayed(const Duration(milliseconds: 120), () {
-          page2Completer.complete(
-            const PaginatedBreeds(
-              items: [persian],
-              currentPage: 2,
-              lastPage: 3,
-            ),
-          );
-        });
-
-        return BreedsBloc(repository);
-      },
-      act: (bloc) async {
-        bloc.add(const BreedsStarted());
-        await Future<void>.delayed(const Duration(milliseconds: 30));
-        bloc.add(const BreedsLoadMoreRequested());
-        bloc.add(const BreedsLoadMoreRequested());
-      },
-      wait: const Duration(milliseconds: 300),
-      verify: (_) {
-        verify(() => repository.getBreedsPage(page: 2)).called(1);
-      },
-    );
+      verify(() => repository.getBreedsPage(page: 2)).called(1);
+      await cubit.close();
+    });
   });
 }

@@ -5,8 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../core/di/injection_container.dart';
 import '../features/breed_detail/presentation/pages/breed_detail_page.dart';
 import '../features/breeds/domain/entities/breed.dart';
-import '../features/breeds/presentation/bloc/breeds_bloc.dart';
-import '../features/breeds/presentation/bloc/breeds_event.dart';
+import '../features/breeds/presentation/cubit/breeds_cubit.dart';
 import '../features/breeds/presentation/pages/breeds_page.dart';
 
 class AppRoutes {
@@ -25,7 +24,7 @@ class AppRouter {
         path: AppRoutes.home,
         builder: (context, state) {
           return BlocProvider(
-            create: (_) => getIt<BreedsBloc>()..add(const BreedsStarted()),
+            create: (_) => getIt<BreedsCubit>()..loadInitial(),
             child: const BreedsPage(),
           );
         },

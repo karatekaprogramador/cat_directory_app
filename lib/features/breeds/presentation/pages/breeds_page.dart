@@ -3,9 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../app/app_router.dart';
+import '../../../../core/theme/theme_mode_cubit.dart';
 import '../../domain/entities/breed.dart';
-import '../bloc/breeds_bloc.dart';
-import '../bloc/breeds_event.dart';
+import '../cubit/breeds_cubit.dart';
 import '../cubit/breeds_state.dart';
 
 class BreedsPage extends StatefulWidget {
@@ -39,7 +39,7 @@ class _BreedsPageState extends State<BreedsPage> {
 
     final position = _scrollController.position;
     if (position.pixels >= position.maxScrollExtent - 240) {
-      context.read<BreedsBloc>().add(const BreedsLoadMoreRequested());
+      context.read<BreedsCubit>().loadMore();
     }
   }
 
@@ -47,7 +47,7 @@ class _BreedsPageState extends State<BreedsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: BlocConsumer<BreedsBloc, BreedsState>(
+        child: BlocConsumer<BreedsCubit, BreedsState>(
           listener: (context, state) {
             final message = state.errorMessage;
             if (message != null && message.isNotEmpty) {
@@ -60,32 +60,60 @@ class _BreedsPageState extends State<BreedsPage> {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(20, 12, 20, 4),
-                  child: Text(
-                    'Cat Directory',
-                    style: TextStyle(
-                      fontSize: 30,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF1B2430),
-                    ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Cat Directory',
+                          style: Theme.of(context).textTheme.headlineMedium
+                              ?.copyWith(fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                      BlocBuilder<ThemeModeCubit, ThemeMode>(
+                        builder: (context, themeMode) {
+                          final isDark = themeMode == ThemeMode.dark;
+
+                          return Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                isDark
+                                    ? Icons.dark_mode_rounded
+                                    : Icons.light_mode_rounded,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 6),
+                              Switch.adaptive(
+                                value: isDark,
+                                onChanged: (value) {
+                                  context.read<ThemeModeCubit>().setDarkMode(
+                                    value,
+                                  );
+                                },
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ],
                   ),
                 ),
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(20, 0, 20, 12),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
                   child: Text(
                     'Explora razas y conoce más de cada una.',
-                    style: TextStyle(color: Color(0xFF677489), fontSize: 15),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontSize: 15,
+                    ),
                   ),
                 ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: TextField(
-                    onChanged: (value) {
-                      context.read<BreedsBloc>().add(
-                        BreedsSearchChanged(value),
-                      );
-                    },
+                    onChanged: context.read<BreedsCubit>().onSearchChanged,
                     decoration: const InputDecoration(
                       hintText: 'Buscar raza...',
                       prefixIcon: Icon(Icons.search_rounded),
@@ -126,9 +154,7 @@ class _BreedsPageState extends State<BreedsPage> {
               ),
               const SizedBox(height: 12),
               FilledButton.tonal(
-                onPressed: () {
-                  context.read<BreedsBloc>().add(const BreedsStarted());
-                },
+                onPressed: () => context.read<BreedsCubit>().loadInitial(),
                 child: const Text('Reintentar'),
               ),
             ],
@@ -144,9 +170,7 @@ class _BreedsPageState extends State<BreedsPage> {
     }
 
     return RefreshIndicator(
-      onRefresh: () async {
-        context.read<BreedsBloc>().add(const BreedsRefreshed());
-      },
+      onRefresh: () => context.read<BreedsCubit>().refresh(),
       child: ListView.builder(
         controller: _scrollController,
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
@@ -180,26 +204,35 @@ class _BreedTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 6),
-      child: ListTile(
-        onTap: onTap,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        title: Text(
-          breed.breed,
-          style: const TextStyle(
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF1B2430),
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
+    final heroTag = 'breed-card-${breed.breed}-${breed.country}';
+
+    return Hero(
+      tag: heroTag,
+      child: Card(
+        margin: const EdgeInsets.symmetric(vertical: 6),
+        child: ListTile(
+          onTap: onTap,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 8,
           ),
-        ),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: Text(
-            breed.country,
-            style: const TextStyle(color: Color(0xFF6B7280)),
+          title: Text(
+            breed.breed,
+            style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
           ),
+          subtitle: Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              breed.country,
+              style: textTheme.bodyMedium?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          trailing: const Icon(Icons.chevron_right_rounded),
         ),
-        trailing: const Icon(Icons.chevron_right_rounded),
       ),
     );
   }
