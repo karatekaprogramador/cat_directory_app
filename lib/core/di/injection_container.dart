@@ -1,7 +1,7 @@
+import 'package:cat_directory_app/features/breed_detail/data/repositories/cat_fact_repository.dart';
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 
-import '../../features/breed_detail/data/repositories/cat_fact_repository.dart';
 import '../../features/breed_detail/presentation/cubit/breed_detail_cubit.dart';
 import '../../features/breeds/data/repositories/breed_repository.dart';
 import '../../features/breeds/data/services/cat_api_service.dart';
