@@ -1,0 +1,129 @@
+	Frontend Flutter Developer
+Objetivo
+Desarrollar una aplicación móvil en Flutter que consuma la API pública de Catfact Ninja para crear
+un directorio interactivo de razas de gatos. Se evaluará la arquitectura del código, el manejo de
+estados, el consumo eficiente de la API (incluyendo paginación) y las buenas prácticas de UI/UX ante
+posibles fallos de red.
+Se tomará en cuenta la creatividad y solución propuesta ante situaciones de posibles fallos que
+deben ser manejadas para garantizar la correcta experiencia del usuario.
+Getting Started
+Crear el proyecto Flutter con el nombre cat-directory-app.
+Hacer un commit inicial con la estructura base.
+PLUS: proveer una versión compilada (APK o Web build) en los releases del repositorio.
+Contexto del Negocio
+Eres el Lead Mobile Developer para una nueva iniciativa orientada al cuidado de mascotas. Necesitan
+un MVP (Minimum Viable Product) de una aplicación que:
+1. Permita a los usuarios explorar un directorio de razas de gatos.
+2. Visualice los resultados de manera fluida, manejando grandes volúmenes de datos sin
+comprometer el rendimiento.
+3. Ofrezca detalles específicos de cada raza y un dato curioso aleatorio.
+Requerimientos Funcionales
+1. Pantalla Principal (Home / Directorio)
+- Listado de Razas: Consumir el endpoint https://catfact.ninja/breeds y mostrar los resultados
+en una lista (ListView o SliverList). (documentación de la api https://catfact.ninja/ )
+- Información a mostrar: Nombre de la raza (breed) y el país de origen (country).
+-
+-
+-
+Paginación (Obligatorio): La API devuelve resultados paginados. Debes implementar un
+"Infinite Scroll" que cargue la siguiente página automáticamente al llegar al final de la lista.
+Pull to Refresh: Implementar la acción de deslizar hacia abajo para recargar la lista desde la
+página 1.
+Búsqueda Local: Un TextField superior que permita filtrar la lista actual cargada en memoria
+por el nombre de la raza.
+2. Vista de Detalle-
+-
+-
+Al tocar una raza en la lista, navegar a una nueva pantalla.
+Detalles de la raza: Mostrar la información completa (Breed, Country, Origin, Coat, Pattern).
+Integración de 2do Endpoint: Consumir el endpoint https://catfact.ninja/fact para mostrar
+un "Dato Curioso Aleatorio" en esta pantalla. Deberá mostrar un estado de loading
+independiente mientras se obtiene el dato.
+Requerimientos Técnicos
+-
+-
+-
+-
+-
+State Management: Es obligatorio el uso de un gestor de estados reactivo. Se recomienda
+encarecidamente BLoC/Cubit o Riverpod.
+Arquitectura: Se espera una separación clara de responsabilidades (Ej. Clean Architecture,
+Feature-driven o MVC/MVVM adaptado a Flutter). Separar la UI de la lógica de negocio y los
+repositorios de datos.
+Manejo de Errores y UX: Mostrar estados de carga (Skeleton loading o
+CircularProgressIndicator).
+Manejo de excepciones: ¿Qué pasa si el dispositivo pierde conexión a internet o la API falla?
+Mostrar Snackbars o Dialogs amigables.
+Modelado de Datos: Usar clases modelo fuertemente tipadas. (Se valora positivamente el
+uso de paquetes como freezed o json_serializable).
+Funcionalidades Opcionales (PLUS)
+Dark Mode: Soporte para cambio de tema claro/oscuro responsivo a la configuración del
+sistema.
+Animaciones: Uso de Hero animations al navegar entre la lista y el detalle.
+Caché / Persistencia: Guardar la primera página de resultados usando shared_preferences
+o hive para que la app abra instantáneamente sin red.
+Testing: Al menos 1 o 2 pruebas unitarias (Unit Tests) del BLoC/Provider o de la capa de
+repositorios.
+Entregables
+1. Link al repositorio (GitHub, GitLab), con el código fuente estructurado y un historial de
+commits lógico.
+2. Archivo README con:
+oInstrucciones claras para ejecutar el proyecto.
+oExplicación breve de la arquitectura elegida y el porqué del gestor de estados
+utilizado.
+oOpcional: Capturas de pantalla o un video del funcionamiento de la app.SOLO USO DE NEXTEP
+Guía Interna de Evaluación Técnica (Nextep - Flutter)
+Al revisar el repositorio del candidato, enfócate en estos 4 pilares. Esto te dirá rápidamente dónde
+están parados y hacia dónde pueden llegar.
+1. Manejo de Estado (BLoC) y Paginación (El Filtro Principal)
+Esta es la prueba de fuego. Revisa el archivo del BLoC (ej. breeds_bloc.dart).
+Bandera Roja (Junior / Copy-Paste): Toda la lógica de la API está metida dentro del archivo
+de la interfaz (UI) usando un setState. Si usaron BLoC, cada vez que hacen scroll sobrescriben
+la lista completa (la pantalla hace saltos raros). No hay control de eventos: si haces scroll
+rápido, la consola muestra 10 llamadas a la API al mismo tiempo.
+Aceptable (Mid-Level): Entienden que BLoC separa la lógica. Emiten estados de carga y
+logran anexar los datos nuevos a la lista existente (nueva_lista = [...lista_vieja,
+...datos_nuevos]).
+Excelente (Senior): Implementan "transformación de eventos". Usan utilidades como
+droppable (ignorar eventos de scroll mientras ya hay una petición en curso) o debounce para
+no saturar la API. Mantienen un estado inmutable y limpio.
+2. Consumo de API y Capa de Datos
+Busca cómo se conectan a https://catfact.ninja.
+Bandera Roja (Junior): Las URLs están "quemadas" (hardcoded) directamente en los
+botones o en la UI. No usan modelos de datos, sino que trabajan directamente con
+Map<String, dynamic>.
+Aceptable (Mid-Level): Crearon una clase BreedModel con su método fromJson. Tienen un
+archivo separado (ej. api_service.dart o breed_repository.dart) que hace las peticiones
+HTTP.
+Excelente (Senior): Centralizan la configuración de la API (un cliente HTTP base). Manejan
+excepciones a nivel de repositorio y retornan respuestas tipadas usando clases envolventes
+como Either (del paquete fpdart o dartz) o Result (Éxito / Fracaso) para que el BLoC decida
+qué hacer.
+3. UI, UX y Manejo de Errores
+Ejecuta la app (o revisa su código de UI) e imagina que estás en el metro perdiendo la señal de Digitel
+o Movistar.
+Bandera Roja (Junior): Si apagas el WiFi y abres la app, se queda una pantalla gris infinita o
+explota con la famosa "pantalla roja de la muerte" de Flutter.
+Aceptable (Mid-Level): Si hay un error, muestran un texto simple o un Snackbar genérico.
+Tienen un indicador de carga (CircularProgressIndicator) básico en el centro de la pantalla.
+Excelente (Senior): Tienen Skeleton Loaders (placeholders grises que brillan) mientras carga
+por primera vez. Si el Infinite Scroll falla en la página 3 por falta de red, no borran las páginas
+1 y 2; simplemente muestran un botón de "Reintentar" al final de la lista.
+4. Actitud, Potencial y "El Factor Nextep" (La Entrevista)
+El código no lo es todo. Durante la revisión del README o la entrevista de retroalimentación, evalúa
+su franqueza y proceso mental:
+El "Falso Gurú": Implementó una arquitectura gigante con 20 carpetas para una app de 2
+pantallas, pero no sabe explicar por qué lo hizo. Probablemente clonó un template de
+GitHub.
+El Recurrente Seguro (Experiencia comprobada): Conoce BLoC al derecho y al revés porque
+lo usa a diario. Escribió código limpio y pragmático. Es un "contratar" seguro.
+El Diamante en Bruto (Potencial): En su README o en la entrevista te dice: "Honestamente,
+yo venía de usar Provider/GetX y nunca había hecho Infinite Scroll con BLoC. Me costó
+entender los Yields/Emits, leí la documentación oficial, vi cómo manejar el estado
+acumulativo y logré esta implementación. Sé que se puede mejorar aplicando un debounce,
+pero el tiempo no me dio".
+o
+Veredicto: ¡A este lo quieres en tu equipo! Alguien que sabe admitir lo que no sabe,
+investiga, lo implementa bajo presión y además identifica sus propias áreas de
+mejora, es exactamente el tipo de perfil que escalará el ecosistema de Quoota
+Capital y Benefits.
