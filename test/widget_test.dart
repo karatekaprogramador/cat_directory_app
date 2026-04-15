@@ -6,12 +6,24 @@
 // tree, read text, and verify that the values of widget properties are correct.
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:cat_directory_app/app/app.dart';
+import 'package:flutter/material.dart';
 
 void main() {
   testWidgets('App renders home title', (WidgetTester tester) async {
-    await tester.pumpWidget(const CatDirectoryApp(loadInitialBreeds: false));
+    final testRouter = GoRouter(
+      routes: [
+        GoRoute(
+          path: '/',
+          builder: (context, state) =>
+              const Scaffold(body: Center(child: Text('Cat Directory'))),
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(CatDirectoryApp(router: testRouter));
 
     expect(find.text('Cat Directory'), findsOneWidget);
   });

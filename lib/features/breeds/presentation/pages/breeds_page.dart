@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
-import '../../../breed_detail/presentation/pages/breed_detail_page.dart';
+import '../../../../app/app_router.dart';
 import '../../domain/entities/breed.dart';
-import '../cubit/breeds_cubit.dart';
+import '../bloc/breeds_bloc.dart';
+import '../bloc/breeds_event.dart';
 import '../cubit/breeds_state.dart';
 
 class BreedsPage extends StatefulWidget {
@@ -37,7 +39,7 @@ class _BreedsPageState extends State<BreedsPage> {
 
     final position = _scrollController.position;
     if (position.pixels >= position.maxScrollExtent - 240) {
-      context.read<BreedsCubit>().loadMore();
+      context.read<BreedsBloc>().add(const BreedsLoadMoreRequested());
     }
   }
 
@@ -45,7 +47,7 @@ class _BreedsPageState extends State<BreedsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: BlocConsumer<BreedsCubit, BreedsState>(
+        child: BlocConsumer<BreedsBloc, BreedsState>(
           listener: (context, state) {
             final message = state.errorMessage;
             if (message != null && message.isNotEmpty) {
@@ -79,7 +81,11 @@ class _BreedsPageState extends State<BreedsPage> {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: TextField(
-                    onChanged: context.read<BreedsCubit>().onSearchChanged,
+                    onChanged: (value) {
+                      context.read<BreedsBloc>().add(
+                        BreedsSearchChanged(value),
+                      );
+                    },
                     decoration: const InputDecoration(
                       hintText: 'Buscar raza...',
                       prefixIcon: Icon(Icons.search_rounded),
@@ -120,7 +126,9 @@ class _BreedsPageState extends State<BreedsPage> {
               ),
               const SizedBox(height: 12),
               FilledButton.tonal(
-                onPressed: () => context.read<BreedsCubit>().loadInitial(),
+                onPressed: () {
+                  context.read<BreedsBloc>().add(const BreedsStarted());
+                },
                 child: const Text('Reintentar'),
               ),
             ],
@@ -136,7 +144,9 @@ class _BreedsPageState extends State<BreedsPage> {
     }
 
     return RefreshIndicator(
-      onRefresh: () => context.read<BreedsCubit>().refresh(),
+      onRefresh: () async {
+        context.read<BreedsBloc>().add(const BreedsRefreshed());
+      },
       child: ListView.builder(
         controller: _scrollController,
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
@@ -153,11 +163,7 @@ class _BreedsPageState extends State<BreedsPage> {
           return _BreedTile(
             breed: breed,
             onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => BreedDetailPage(breed: breed),
-                ),
-              );
+              context.push(AppRoutes.breedDetail, extra: breed);
             },
           );
         },

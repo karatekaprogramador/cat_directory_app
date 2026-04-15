@@ -1,32 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
-import '../core/di/injection_container.dart';
 import '../core/theme/app_theme.dart';
-import '../features/breeds/presentation/cubit/breeds_cubit.dart';
-import '../features/breeds/presentation/pages/breeds_page.dart';
+import 'app_router.dart';
 
 class CatDirectoryApp extends StatelessWidget {
-  const CatDirectoryApp({super.key, this.loadInitialBreeds = true});
+  const CatDirectoryApp({super.key, this.router});
 
-  final bool loadInitialBreeds;
+  final GoRouter? router;
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       title: 'Cat Directory',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
-      home: BlocProvider(
-        create: (_) {
-          final cubit = getIt<BreedsCubit>();
-          if (loadInitialBreeds) {
-            cubit.loadInitial();
-          }
-          return cubit;
-        },
-        child: const BreedsPage(),
-      ),
+      routerConfig: router ?? AppRouter.router,
     );
   }
 }
